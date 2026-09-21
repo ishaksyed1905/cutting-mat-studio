@@ -241,7 +241,8 @@
           <textarea id="quote" rows="2" spellcheck="false" aria-label="Centre text"></textarea>
           <div style="display:flex; flex-direction:column; gap:10px">
             <select id="quotePick" aria-label="Preset quotes"></select>
-            <label class="check"><input type="checkbox" id="optPrint" checked> Fine print in the corner</label>
+            <label class="check"><input type="checkbox" id="optPrint" checked> Fine print</label>
+            <label class="check"><input type="checkbox" id="optLabels" checked> Corner labels</label>
           </div>
         </div>
         <div class="text-ctl">
@@ -298,7 +299,7 @@ const FINE_PRINT = [
 const state = { cw: 'Terracotta', w: 3840, h: 2160, sizeName: '16:9 Desktop', quote: QUOTES[0],
   custom: null, lockLine: false, lockText: false,
   gridStyle: 'standard', gridScale: 1, lineW: 1, gridOp: 1, gridMargin: 5,
-  numbers: true, guides: true, print: true,
+  numbers: true, guides: true, print: true, labels: true,
   q: { size: 1, weight: 500, op: 0.9, upper: false, x: 50, y: 50 },
   lightStyle: 'shadow:07', lightInt: 1, lightAng: 0, lightHi: 1, lightBlur: 0, texStyle: 'smooth', texInt: 1 };
 
@@ -309,7 +310,7 @@ const RESETS = {
   light: ['lightStyle', 'lightInt', 'lightAng', 'lightHi', 'lightBlur'],
   texture: ['texStyle', 'texInt', 'numbers', 'guides'],
   grid: ['gridStyle', 'gridScale', 'lineW', 'gridOp', 'gridMargin'],
-  text: ['quote', 'q', 'print'],
+  text: ['quote', 'q', 'print', 'labels'],
 };
 function resetGroup(k) { for (const key of RESETS[k]) state[key] = JSON.parse(JSON.stringify(DEFAULTS[key])); refreshInputs(); sync(); }
 function refreshInputs() {
@@ -318,7 +319,7 @@ function refreshInputs() {
   set('lightStyle', state.lightStyle); set('lightInt', state.lightInt * 100); set('lightAng', state.lightAng); set('lightHi', state.lightHi * 100); set('lightBlur', state.lightBlur * 100);
   set('texStyle', state.texStyle); set('texInt', state.texInt * 100); chk('optNumbers', state.numbers); chk('optGuides', state.guides);
   set('gridStyle', state.gridStyle); set('gridScale', state.gridScale * 100); set('lineW', state.lineW * 100); set('gridOp', state.gridOp * 100); set('gridMargin', state.gridMargin);
-  set('quote', state.quote); chk('optPrint', state.print); set('qSize', state.q.size * 100); set('qWeight', state.q.weight); set('qOp', state.q.op * 100);
+  set('quote', state.quote); chk('optPrint', state.print); chk('optLabels', state.labels); set('qSize', state.q.size * 100); set('qWeight', state.q.weight); set('qOp', state.q.op * 100);
   set('w', state.w); set('h', state.h);
 }
 
@@ -643,6 +644,7 @@ function render(ctx, w, h, st) {
 
   ctx.letterSpacing = `${S * 0.0012}px`;
   ctx.font = `500 ${S * 0.0100}px ${SANS}`; ctx.fillStyle = rgb(T, 0.78);
+  if (st.labels) {
   // vertical label, bottom-left
   ctx.save(); ctx.translate(gx0 + cell * 0.35, gy1 - cell * 0.35); ctx.rotate(-Math.PI / 2);
   ctx.textAlign = 'left'; ctx.textBaseline = 'top';
@@ -651,6 +653,7 @@ function render(ctx, w, h, st) {
   // top-right mark
   ctx.textAlign = 'right'; ctx.textBaseline = 'top';
   ctx.fillText('CUTTING MAT  ·  SERIES 01', gx1 - cell * 0.4, gy0 + cell * 0.4);
+  }
 
   if (st.print) {
     ctx.letterSpacing = '0px';
@@ -699,7 +702,7 @@ function buildControls() {
     if (w >= 320 && h >= 320 && w <= 16384 && h <= 16384) { state.w = w; state.h = h; state.sizeName = 'Custom'; sync(false); }
   };
   $('w').oninput = applySize; $('h').oninput = applySize;
-  for (const [id, key] of [['optNumbers','numbers'],['optGuides','guides'],['optPrint','print']])
+  for (const [id, key] of [['optNumbers','numbers'],['optGuides','guides'],['optPrint','print'],['optLabels','labels']])
     $(id).onchange = e => { state[key] = e.target.checked; sync(false); };
   const sg = $('shadowGroup');
   for (const [id, name] of SHADOWS) { const o = document.createElement('option'); o.value = 'shadow:' + id; o.textContent = name; sg.appendChild(o); }
