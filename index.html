@@ -230,7 +230,8 @@
         <div class="ctl">
           <div class="slider"><div class="label"><span>Cell size</span><span id="gridScaleV"></span></div><input type="range" id="gridScale" min="50" max="200" value="100" aria-label="Cell size"></div>
           <div class="slider"><div class="label"><span>Line weight</span><span id="lineWV"></span></div><input type="range" id="lineW" min="50" max="250" value="100" aria-label="Line weight"></div>
-          <div class="slider full"><div class="label"><span>Line opacity</span><span id="gridOpV"></span></div><input type="range" id="gridOp" min="20" max="200" value="100" aria-label="Line opacity"></div>
+          <div class="slider"><div class="label"><span>Line opacity</span><span id="gridOpV"></span></div><input type="range" id="gridOp" min="20" max="200" value="100" aria-label="Line opacity"></div>
+          <div class="slider"><div class="label"><span>Margin</span><span id="gridMarginV"></span></div><input type="range" id="gridMargin" min="1" max="20" step="0.5" value="5" aria-label="Grid margin"></div>
         </div>
       </div>
 
@@ -296,7 +297,7 @@ const FINE_PRINT = [
 
 const state = { cw: 'Terracotta', w: 3840, h: 2160, sizeName: '16:9 Desktop', quote: QUOTES[0],
   custom: null, lockLine: false, lockText: false,
-  gridStyle: 'standard', gridScale: 1, lineW: 1, gridOp: 1,
+  gridStyle: 'standard', gridScale: 1, lineW: 1, gridOp: 1, gridMargin: 5,
   numbers: true, guides: true, print: true,
   q: { size: 1, weight: 500, op: 0.9, upper: false, x: 50, y: 50 },
   lightStyle: 'shadow:07', lightInt: 1, lightAng: 0, lightHi: 1, lightBlur: 0, texStyle: 'smooth', texInt: 1 };
@@ -307,7 +308,7 @@ const RESETS = {
   size: ['w', 'h', 'sizeName'],
   light: ['lightStyle', 'lightInt', 'lightAng', 'lightHi', 'lightBlur'],
   texture: ['texStyle', 'texInt', 'numbers', 'guides'],
-  grid: ['gridStyle', 'gridScale', 'lineW', 'gridOp'],
+  grid: ['gridStyle', 'gridScale', 'lineW', 'gridOp', 'gridMargin'],
   text: ['quote', 'q', 'print'],
 };
 function resetGroup(k) { for (const key of RESETS[k]) state[key] = JSON.parse(JSON.stringify(DEFAULTS[key])); refreshInputs(); sync(); }
@@ -316,7 +317,7 @@ function refreshInputs() {
   const chk = (id, v) => { const el = document.getElementById(id); if (el) el.checked = v; };
   set('lightStyle', state.lightStyle); set('lightInt', state.lightInt * 100); set('lightAng', state.lightAng); set('lightHi', state.lightHi * 100); set('lightBlur', state.lightBlur * 100);
   set('texStyle', state.texStyle); set('texInt', state.texInt * 100); chk('optNumbers', state.numbers); chk('optGuides', state.guides);
-  set('gridStyle', state.gridStyle); set('gridScale', state.gridScale * 100); set('lineW', state.lineW * 100); set('gridOp', state.gridOp * 100);
+  set('gridStyle', state.gridStyle); set('gridScale', state.gridScale * 100); set('lineW', state.lineW * 100); set('gridOp', state.gridOp * 100); set('gridMargin', state.gridMargin);
   set('quote', state.quote); chk('optPrint', state.print); set('qSize', state.q.size * 100); set('qWeight', state.q.weight); set('qOp', state.q.op * 100);
   set('w', state.w); set('h', state.h);
 }
@@ -529,7 +530,7 @@ function render(ctx, w, h, st) {
 
   // ---- grid ----
   const L = cw.line, T = cw.text, op = st.gridOp;
-  const margin = S * 0.048, cell = (Math.sqrt(w * h) / 9) * st.gridScale;
+  const margin = S * st.gridMargin / 100, cell = (Math.sqrt(w * h) / 9) * st.gridScale;
   const lw = Math.max(0.6, S / 1400) * st.lineW;
   const nx = Math.floor((w - 2 * margin) / cell), ny = Math.floor((h - 2 * margin) / cell);
   const gw = nx * cell, gh = ny * cell, gx0 = (w - gw) / 2, gy0 = (h - gh) / 2, gx1 = gx0 + gw, gy1 = gy0 + gh;
@@ -717,6 +718,7 @@ function buildControls() {
   $('gridScale').oninput = e => { state.gridScale = e.target.value / 100; sync(false); };
   $('lineW').oninput = e => { state.lineW = e.target.value / 100; sync(false); };
   $('gridOp').oninput = e => { state.gridOp = e.target.value / 100; sync(false); };
+  $('gridMargin').oninput = e => { state.gridMargin = +e.target.value; sync(false); };
   const ensureCustom = () => { if (!state.custom) { const c = COLORWAYS[state.cw]; state.custom = { base: c.base, line: c.line, text: c.text }; } };
   $('cBase').oninput = e => { ensureCustom(); state.custom.base = unhex(e.target.value); sync(false); };
   $('cLine').oninput = e => { ensureCustom(); state.custom.line = unhex(e.target.value); state.lockLine = true; sync(false); };
@@ -743,6 +745,7 @@ function sync(updateFields = true) {
   $('gridScaleV').textContent = Math.round(state.gridScale * 100) + '%';
   $('lineWV').textContent = Math.round(state.lineW * 100) + '%';
   $('gridOpV').textContent = Math.round(state.gridOp * 100) + '%';
+  $('gridMarginV').textContent = state.gridMargin + '%';
   $('qSizeV').textContent = Math.round(state.q.size * 100) + '%'; $('qWeightV').textContent = state.q.weight; $('qOpV').textContent = Math.round(state.q.op * 100) + '%';
   $('qCase').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', (b.dataset.v === 'upper') === state.q.upper));
   $('qAnchor').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', +b.dataset.x === state.q.x && +b.dataset.y === state.q.y));
