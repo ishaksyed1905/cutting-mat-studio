@@ -534,8 +534,9 @@ function render(ctx, w, h, st) {
   const L = cw.line, T = cw.text, op = st.gridOp;
   const margin = S * st.gridMargin / 100, cell = (Math.sqrt(w * h) / 9) * st.gridScale;
   const lw = Math.max(0.6, S / 1400) * st.lineW, D = st.gridDiv;
-  const nx = Math.floor((w - 2 * margin) / cell), ny = Math.floor((h - 2 * margin) / cell);
-  const gw = nx * cell, gh = ny * cell, gx0 = (w - gw) / 2, gy0 = (h - gh) / 2, gx1 = gx0 + gw, gy1 = gy0 + gh;
+  const gx0 = margin, gy0 = margin, gx1 = w - margin, gy1 = h - margin, gw = gx1 - gx0, gh = gy1 - gy0;
+  const nx = Math.ceil(gw / cell), ny = Math.ceil(gh / cell);
+  const inX = x => x <= gx1 + 0.5, inY = y => y <= gy1 + 0.5;
   const A = a => Math.min(1, a * op);
   const line = (x0, y0, x1, y1, a, width = lw) => { ctx.strokeStyle = rgb(L, A(a)); ctx.lineWidth = width; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke(); };
   const majors = (a = 0.47, width = lw) => {
@@ -614,24 +615,28 @@ function render(ctx, w, h, st) {
   const off = lw * 3, tickS = cell / D * 0.35, tickL = cell / D, minor = cell / D;
   const perUnit = ['blocks', 'crosses', 'dotcross'].includes(st.gridStyle);
   ctx.fillStyle = rgb(L, A(0.67)); ctx.font = `500 ${Math.max(7, S * (perUnit ? 0.0062 : 0.0085))}px ${SANS}`; ctx.letterSpacing = '0px';
-  const labelAt = (i, n) => st.numbers && (perUnit ? (i > 0 && i < n * D) : (i % D === 0 && i / D > 0 && i / D < n));
+  const labelAt = (i, n, pos, end) => st.numbers && (perUnit ? (i > 0 && pos < end - minor * 0.6) : (i % D === 0 && i / D > 0 && pos < end - cell * 0.35));
   const labelOf = i => perUnit ? i : i / D;
   for (let i = 0; i <= nx * D; i++) {
-    const x = gx0 + i * minor, tl = i % D ? tickS : tickL;
+    const x = gx0 + i * minor, tl = i % D ? tickS : tickL; if (!inX(x)) break;
     line(x, gy0 - off, x, gy0 - off - tl, 0.59); line(x, gy1 + off, x, gy1 + off + tl, 0.59);
-    if (labelAt(i, nx)) {
+    if (labelAt(i, nx, x, gx1)) {
       ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic'; ctx.fillText(labelOf(i), x, gy0 - off - tl - S * 0.004);
       ctx.textBaseline = 'top'; ctx.fillText(labelOf(i), x, gy1 + off + tl + S * 0.004);
     }
   }
   for (let j = 0; j <= ny * D; j++) {
-    const y = gy0 + j * minor, tl = j % D ? tickS : tickL;
+    const y = gy0 + j * minor, tl = j % D ? tickS : tickL; if (!inY(y)) break;
     line(gx0 - off, y, gx0 - off - tl, y, 0.59); line(gx1 + off, y, gx1 + off + tl, y, 0.59);
-    if (labelAt(j, ny)) {
+    if (labelAt(j, ny, y, gy1)) {
       ctx.textBaseline = 'middle'; ctx.textAlign = 'right'; ctx.fillText(labelOf(j), gx0 - off - tl - S * 0.004, y);
       ctx.textAlign = 'left'; ctx.fillText(labelOf(j), gx1 + off + tl + S * 0.004, y);
     }
   }
+
+  // frame-end ticks so every ruler terminates identically at the corners
+  for (const [x, y] of [[gx1, gy0], [gx1, gy1]]) { line(x, y + (y === gy0 ? -off : off), x, y + (y === gy0 ? -off - tickL : off + tickL), 0.59); }
+  for (const [x, y] of [[gx0, gy1], [gx1, gy1]]) { line(x + (x === gx0 ? -off : off), y, x + (x === gx0 ? -off - tickL : off + tickL), y, 0.59); }
 
   // ---- typography ----
   const q = st.q, qfs = S * 0.034 * q.size;
